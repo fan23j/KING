@@ -1,14 +1,15 @@
 import os
 import subprocess
 import argparse
+from king.misc import DEFAULT_DIMENSIONS as default_dimensions
 
 CUR_DIR = os.path.dirname(os.path.abspath(__file__))
+
 def register_subparsers(subparser):
     parser = subparser.add_parser('evaluate', formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument(
         "videos_path",
         type=str,
-        required=True,
         help="folder that contains the generated samples",
     )
     parser.add_argument(
@@ -26,8 +27,10 @@ def register_subparsers(subparser):
     parser.add_argument(
         "--dimensions",
         type=str,
-        required=True,
-        help="list of evaluation metrics, usage: --dimensions <metric_1> <metric_2>",
+        nargs='+',
+        choices=default_dimensions,
+        default=default_dimensions,
+        help=f'list of evaluation metrics, unless specified, default dimensions are: {default_dimensions}',
     )
     parser.set_defaults(func=evaluate)
 

@@ -5,6 +5,7 @@ from king.distributed import dist_init, print0
 from datetime import datetime
 import argparse
 import json
+from king.misc import DEFAULT_DIMENSIONS as default_dimensions
 
 def parse_args():
 
@@ -24,9 +25,12 @@ def parse_args():
     )
     parser.add_argument(
         "--dimensions",
+        type=str,
         nargs='+',
         required=True,
-        help="list of evaluation metrics, usage: --dimensions <metric_1> <metric_2>",
+        choices=default_dimensions,
+        default=default_dimensions,
+        help=f'list of evaluation metrics, unless specified, default dimensions are: {default_dimensions}',
     )
     args = parser.parse_args()
     return args
@@ -49,7 +53,7 @@ def main():
     my_King.evaluate(
         videos_path = args.videos_path,
         name = f'results_{current_time}',
-        metrics_list = args.metric,
+        dimension_list = args.dimensions,
         **kwargs
     )
     print0('done')
