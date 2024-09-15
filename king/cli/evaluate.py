@@ -6,7 +6,7 @@ CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 def register_subparsers(subparser):
     parser = subparser.add_parser('evaluate', formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument(
-        "--videos_path",
+        "videos_path",
         type=str,
         required=True,
         help="folder that contains the generated samples",
@@ -24,10 +24,10 @@ def register_subparsers(subparser):
         help="output path to save the evaluation results",
     )
     parser.add_argument(
-        "--metric",
+        "--dimensions",
         type=str,
         required=True,
-        help="list of evaluation metrics, usage: --metric <metric_1> <metric_2>",
+        help="list of evaluation metrics, usage: --dimensions <metric_1> <metric_2>",
     )
     parser.set_defaults(func=evaluate)
 

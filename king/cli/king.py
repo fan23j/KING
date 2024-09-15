@@ -2,7 +2,7 @@ import argparse
 import importlib
 import subprocess
 
-king_cmd = ['evaluate', 'static_filter']
+king_cmd = ['evaluate']
 
 def main():
     parser = argparse.ArgumentParser(prog="king", formatter_class=argparse.RawTextHelpFormatter)

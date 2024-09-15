@@ -1,7 +1,7 @@
 import torch
 import os
-from vbench import VBench
-from vbench.distributed import dist_init, print0
+from king import KING
+from king.distributed import dist_init, print0
 from datetime import datetime
 import argparse
 import json
@@ -23,10 +23,10 @@ def parse_args():
         help="folder that contains the sampled videos",
     )
     parser.add_argument(
-        "--metric",
+        "--dimensions",
         nargs='+',
         required=True,
-        help="list of evaluation metrics, usage: --metric <metric_1> <metric_2>",
+        help="list of evaluation metrics, usage: --dimensions <metric_1> <metric_2>",
     )
     args = parser.parse_args()
     return args
