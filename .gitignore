@@ -3,3 +3,4 @@ vis_results/
 build/
 king/cli/__pycache__/
 king.egg-info/
+**/__pycache__/

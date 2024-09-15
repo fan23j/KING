@@ -115,19 +115,22 @@ class Predictor(object):
         return outputs, img_info
 
 
-def imageflow_demo(predictor, video_list, vis_folder, current_time, test_size):
-    timestamp = time.strftime("%Y_%m_%d_%H_%M_%S", current_time)
-    save_folder = osp.join(vis_folder, timestamp)
-    os.makedirs(save_folder, exist_ok=True)
+def imageflow_demo(predictor, video_list, vis_folder, test_size):
     args = ByteTrackerArgs()
-    for video_path in video_list:
-        video_path = video_path['video_list'][0]
+    video_results = {}
+    for video_info in video_list:
+        video_path = video_info['video_list'][0]
+        current_time = time.localtime()
+        timestamp = time.strftime("%Y_%m_%d_%H_%M_%S", current_time)
+        save_folder = osp.join(vis_folder, timestamp)
+        os.makedirs(save_folder, exist_ok=True)
+
         cap = cv2.VideoCapture(video_path)
         width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)  # float
         height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)  # float
         fps = cap.get(cv2.CAP_PROP_FPS)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-        
         save_path = osp.join(save_folder, video_path.split("/")[-1])
         logger.info(f"video save_path is {save_path}")
         vid_writer = cv2.VideoWriter(
@@ -176,11 +179,65 @@ def imageflow_demo(predictor, video_list, vis_folder, current_time, test_size):
             frame_id += 1
 
         if args.save_result:
-            res_file = osp.join(vis_folder, f"{timestamp}.txt")
+            res_file = osp.join(vis_folder, f"{timestamp}_{video_path.split('/')[-1]}.txt")
             with open(res_file, 'w') as f:
                 f.writelines(results)
             logger.info(f"save results to {res_file}")
 
+        # Compute the consistency metric for this video
+        consistency_score = compute_consistency_metric(results, total_frames)
+        video_results[video_path] = consistency_score
+        logger.info(f"Consistency score for {video_path}: {consistency_score:.4f}")
+
+    # Compute the overall consistency score
+    if video_results:
+        all_results = sum(video_results.values()) / len(video_results)
+    else:
+        all_results = 0.0
+    return all_results, video_results
+
+def compute_consistency_metric(results, total_frames):
+    """
+    Compute the consistency metric for a single video.
+    Args:
+        results (list): List of tracking results as strings.
+        total_frames (int): Total number of frames in the video.
+    Returns:
+        float: Consistency score for the video.
+    """
+    track_frames = {}
+    for line in results:
+        frame_id, tid, x1, y1, w, h, score, _, _, _ = line.strip().split(',')
+        frame_id = int(frame_id)
+        tid = int(tid)
+        if tid not in track_frames:
+            track_frames[tid] = []
+        track_frames[tid].append(frame_id)
+
+    per_track_consistency = []
+    for tid, frames in track_frames.items():
+        frames = sorted(frames)
+        max_continuous_length = 1
+        current_length = 1
+        for i in range(1, len(frames)):
+            if frames[i] == frames[i - 1] + 1:
+                current_length += 1
+            else:
+                if current_length > max_continuous_length:
+                    max_continuous_length = current_length
+                current_length = 1
+        if current_length > max_continuous_length:
+            max_continuous_length = current_length
+
+        consistency_i = max_continuous_length / total_frames
+        per_track_consistency.append(consistency_i)
+
+    if per_track_consistency:
+        consistency_score = sum(per_track_consistency) / len(per_track_consistency)
+    else:
+        consistency_score = 0.0
+
+    return consistency_score
 
 def eval_subject_consistency(json_dir, device, submodules_list, **kwargs):
     with open(json_dir, "r") as f:
@@ -198,6 +255,9 @@ def eval_subject_consistency(json_dir, device, submodules_list, **kwargs):
     model = model.half()  # to FP16
 
     predictor = Predictor(model, exp, device)
-    current_time = time.localtime()
     vis_folder = "./vis_results"
-    imageflow_demo(predictor, video_list, vis_folder, current_time, exp.test_size)
+    all_results, video_results = imageflow_demo(predictor, video_list, vis_folder, exp.test_size)
+    if get_world_size() > 1:
+        video_results = gather_list_of_dict(video_results)
+        all_results = sum([d['video_results'] for d in video_results]) / len(video_results)
+    return all_results, video_results
