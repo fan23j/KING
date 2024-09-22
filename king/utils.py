@@ -180,6 +180,12 @@ def init_submodules(dimension_list):
             submodules_dict[dimension] = [yolox_path,]
         if dimension == 'miou':
             submodules_dict[dimension] = []
+        if dimension == 'imaging_quality':
+            musiq_spaq_path = f'{CACHE_DIR}/pyiqa_model/musiq_spaq_ckpt-358bb6af.pth'
+            if not os.path.isfile(musiq_spaq_path):
+                wget_command = ['wget', 'https://github.com/chaofengc/IQA-PyTorch/releases/download/v0.1-weights/musiq_spaq_ckpt-358bb6af.pth', '-P', os.path.dirname(musiq_spaq_path)]
+                subprocess.run(wget_command, check=True)
+            submodules_dict[dimension] = {'model_path': musiq_spaq_path}
         if get_rank() == 0:
             barrier()
     return submodules_dict

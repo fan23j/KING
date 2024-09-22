@@ -29,7 +29,7 @@ def compute_miou_metric(cached_tracking_results):
         float: Overall mIOU for all videos.
         Dict: mIOU for each video.
     """
-    video_results = {}
+    video_results = []
     total_iou = 0.0
     total_boxes = 0
 
@@ -107,8 +107,7 @@ def compute_miou_metric(cached_tracking_results):
             mean_iou = sum(per_frame_ious) / len(per_frame_ious)
         else:
             mean_iou = 0.0
-
-        video_results[video_name] = mean_iou
+        video_results.append({'video_path': video_name, 'video_results': mean_iou})
         total_iou += sum(per_frame_ious)
         total_boxes += len(per_frame_ious)
 
@@ -133,5 +132,5 @@ def eval_miou(json_dir, device, submodules_list, **kwargs):
     all_results, video_results = compute_miou_metric(cached_tracking_results)
     if get_world_size() > 1:
         video_results = gather_list_of_dict(video_results)
-        all_results = sum(video_results.values()) / len(video_results)
+        all_results = sum([d['video_results'] for d in video_results]) / len(video_results)
     return all_results, video_results

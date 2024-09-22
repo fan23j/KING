@@ -117,7 +117,7 @@ class Predictor(object):
 
 def imageflow_demo(predictor, video_list, vis_folder, test_size):
     args = ByteTrackerArgs()
-    video_results = {}
+    video_results = []
     video_tracking_results = {} # store tracking results for each video, save to cache
     for video_info in video_list:
         video_path = video_info['video_list'][0]
@@ -188,13 +188,13 @@ def imageflow_demo(predictor, video_list, vis_folder, test_size):
 
         # Compute the consistency metric for this video
         consistency_score = compute_consistency_metric(results, total_frames)
-        video_results[video_path] = consistency_score
+        video_results.append({'video_path': video_path, 'video_results': consistency_score})
         video_tracking_results[video_name] = results
         logger.info(f"Consistency score for {video_path}: {consistency_score:.4f}")
 
     # Compute the overall consistency score
     if video_results:
-        all_results = sum(video_results.values()) / len(video_results)
+        all_results = sum([d['video_results'] for d in video_results]) / len(video_results)
     else:
         all_results = 0.0
     return all_results, video_results, video_tracking_results
