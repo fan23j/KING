@@ -45,7 +45,10 @@ fvcore
 urllib3
 boto3
 omegaconf
-transformers==4.33.2
+transformers>=0.44.2
 pycocoevalcap
 gdown
 cython_bbox
+diffusers>=0.30.3
+accelerate>=0.34.0
+imageio-ffmpeg>=0.5.1
