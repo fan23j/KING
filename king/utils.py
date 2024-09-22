@@ -178,6 +178,8 @@ def init_submodules(dimension_list):
                 gdown_command = ['gdown', 'https://drive.google.com/uc?id=1lMUAp6pm7vx2KAfmr7grMgF6t5hRCz7l', '-O', yolox_path]
                 subprocess.run(gdown_command, check=True)
             submodules_dict[dimension] = [yolox_path,]
+        if dimension == 'miou':
+            submodules_dict[dimension] = []
         if get_rank() == 0:
             barrier()
     return submodules_dict

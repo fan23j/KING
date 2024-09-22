@@ -69,7 +69,8 @@ class KING(object):
             submodules_list = submodules_dict[dimension]
             print0(f'cur_full_info_path: {cur_full_info_path}') # TODO: to delete
             results = evaluate_func(cur_full_info_path, self.device, submodules_list, **kwargs)
-            results_dict[dimension] = results
+            # remove cache results
+            results_dict[dimension] = results[:2]
         output_name = os.path.join(self.output_path, name+'_eval_results.json')
         if get_rank() == 0:
             save_json(results_dict, output_name)

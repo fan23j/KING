@@ -2,6 +2,7 @@ import os
 import subprocess
 import argparse
 from king.misc import DEFAULT_DIMENSIONS as default_dimensions
+import shlex
 
 CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -43,14 +44,16 @@ def stringify_cmd(cmd_ls):
 def evaluate(args):
     cmd = ['python', '-m', 'torch.distributed.run', '--standalone', '--nproc_per_node', str(args.ngpus), f'{CUR_DIR}/../launch/evaluate.py']
     args_dict = vars(args)
-    for arg in args_dict:
-        if arg == "ngpus" or (args_dict[arg] == None) or arg == "func":
+    for arg,value in args_dict.items():
+        if arg in ("ngpus", "func") or value is None:
             continue
         if arg == "videos_path":
-            cmd.append(f"--videos_path=\"{str(args_dict[arg])}\"")
-            continue
-        cmd.append(f'--{arg}')
-        cmd.append(str(args_dict[arg]))
+            cmd.append(f"--videos_path={shlex.quote(str(value))}")
+        elif arg == "dimensions":
+            cmd.extend(["--dimensions"] + [shlex.quote(dim) for dim in value])
+        else:
+            cmd.append(f'--{arg}')
+            cmd.append(shlex.quote(str(value)))
 
 
     subprocess.run(stringify_cmd(cmd), shell=True)

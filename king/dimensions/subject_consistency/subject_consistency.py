@@ -26,6 +26,7 @@ from king.distributed import (
     distribute_list_to_rank,
     gather_list_of_dict,
 )
+from ..cache import cache_dimensions
 
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -111,15 +112,16 @@ class Predictor(object):
             outputs = postprocess(
                 outputs, self.num_classes, self.confthre, self.nmsthre
             )
-            #logger.info("Infer time: {:.4f}s".format(time.time() - t0))
         return outputs, img_info
 
 
 def imageflow_demo(predictor, video_list, vis_folder, test_size):
     args = ByteTrackerArgs()
     video_results = {}
+    video_tracking_results = {} # store tracking results for each video, save to cache
     for video_info in video_list:
         video_path = video_info['video_list'][0]
+        video_name = osp.basename(video_path)
         current_time = time.localtime()
         timestamp = time.strftime("%Y_%m_%d_%H_%M_%S", current_time)
         save_folder = osp.join(vis_folder, timestamp)
@@ -187,6 +189,7 @@ def imageflow_demo(predictor, video_list, vis_folder, test_size):
         # Compute the consistency metric for this video
         consistency_score = compute_consistency_metric(results, total_frames)
         video_results[video_path] = consistency_score
+        video_tracking_results[video_name] = results
         logger.info(f"Consistency score for {video_path}: {consistency_score:.4f}")
 
     # Compute the overall consistency score
@@ -194,7 +197,7 @@ def imageflow_demo(predictor, video_list, vis_folder, test_size):
         all_results = sum(video_results.values()) / len(video_results)
     else:
         all_results = 0.0
-    return all_results, video_results
+    return all_results, video_results, video_tracking_results
 
 def compute_consistency_metric(results, total_frames):
     """
@@ -239,6 +242,7 @@ def compute_consistency_metric(results, total_frames):
 
     return consistency_score
 
+@cache_dimensions
 def eval_subject_consistency(json_dir, device, submodules_list, **kwargs):
     with open(json_dir, "r") as f:
         video_list = json.load(f)
@@ -256,8 +260,8 @@ def eval_subject_consistency(json_dir, device, submodules_list, **kwargs):
 
     predictor = Predictor(model, exp, device)
     vis_folder = "./vis_results"
-    all_results, video_results = imageflow_demo(predictor, video_list, vis_folder, exp.test_size)
+    all_results, video_results, video_tracking_results = imageflow_demo(predictor, video_list, vis_folder, exp.test_size)
     if get_world_size() > 1:
         video_results = gather_list_of_dict(video_results)
         all_results = sum([d['video_results'] for d in video_results]) / len(video_results)
-    return all_results, video_results
+    return all_results, video_results, video_tracking_results
