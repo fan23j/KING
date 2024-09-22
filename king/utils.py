@@ -188,6 +188,11 @@ def init_submodules(dimension_list):
             submodules_dict[dimension] = {'model_path': musiq_spaq_path}
         if dimension == 'fvd_vae':
             submodules_dict[dimension] = []
+        if dimension == 'fvd_classifier':
+            timesformer_path = '/playpen-storage/yulupan/TimeSformer_action/output/multileague/new_20_league_200_each_redo/checkpoints/checkpoint_epoch_00020.pyth'
+            if not os.path.exists(timesformer_path):
+                raise FileNotFoundError(f"TimeSformer model not found at path {timesformer_path}.")
+            submodules_dict[dimension] = {'model_path': timesformer_path}
         if get_rank() == 0:
             barrier()
     return submodules_dict

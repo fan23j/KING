@@ -52,3 +52,4 @@ cython_bbox
 diffusers>=0.30.3
 accelerate>=0.34.0
 imageio-ffmpeg>=0.5.1
+av
