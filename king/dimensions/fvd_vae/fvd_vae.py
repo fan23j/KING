@@ -88,7 +88,7 @@ def sqrtm_newton_schulz(A, numIters=50):
     sA = Y * torch.sqrt(normA)
     return sA, None
 
-def compute_fvd_vae_metric(model, video_list, device):
+def compute_fvd_vae_metric(model, video_list, gt_encoded_list_path, device):
     """
     Compute the FVD metric for the VAE model.
     Args:
@@ -105,9 +105,8 @@ def compute_fvd_vae_metric(model, video_list, device):
 
     for video_info in video_list:
         video_path = video_info['video_list'][0]
-        video_name = osp.basename(video_path).split('.')[0]
+        video_name = osp.basename(video_path)
         video_reader = imageio.get_reader(video_path, "ffmpeg")
-
         frames = [transforms.ToTensor()(frame) for frame in video_reader]
         video_reader.close()
         total_frames = len(frames)
@@ -120,7 +119,8 @@ def compute_fvd_vae_metric(model, video_list, device):
             encoded_frames = model.encode(frames_tensor)[0].sample().to(torch.float32)
 
         # Load ground truth
-        gt_path = osp.join('king/dimensions/fvd_vae/groundtruth', f'{video_name}.pt')
+        # gt_path = osp.join('/'.join(video_path.split('/')[:-1]), 'encoded.pt')
+        gt_path = os.path.join(gt_encoded_list_path, video_name.replace('.mp4', '.pt'))
         if not osp.exists(gt_path):
             logger.warning(f"Ground truth for video {video_name} not found at path {gt_path}.")
             continue
@@ -154,13 +154,13 @@ def eval_fvd_vae(json_dir, device, submodules_list, **kwargs):
     with open(json_dir, "r") as f:
         video_list = json.load(f)
     video_list = distribute_list_to_rank(video_list)
-
+    gt_encoded_list_path = '/mnt/bum/hanyi/data/gt_encoded'
     model = AutoencoderKLCogVideoX.from_pretrained("THUDM/CogVideoX-5b-I2V", subfolder="vae", torch_dtype=torch.bfloat16).to(device)
     logger.info(f"Model loaded from THUDM/CogVideoX")
     model.enable_slicing()
     model.enable_tiling()
     
-    all_results, video_results = compute_fvd_vae_metric(model, video_list, device)
+    all_results, video_results = compute_fvd_vae_metric(model, video_list, gt_encoded_list_path, device)
     if get_world_size() > 1:
         video_results = gather_list_of_dict(video_results)
         all_results = sum([d['video_results'] for d in video_results]) / len(video_results)

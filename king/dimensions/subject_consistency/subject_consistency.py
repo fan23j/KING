@@ -132,7 +132,6 @@ def imageflow_demo(predictor, video_list, vis_folder, test_size):
         height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)  # float
         fps = cap.get(cv2.CAP_PROP_FPS)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
         save_path = osp.join(save_folder, video_path.split("/")[-1])
         logger.info(f"video save_path is {save_path}")
         vid_writer = cv2.VideoWriter(
@@ -197,6 +196,7 @@ def imageflow_demo(predictor, video_list, vis_folder, test_size):
         all_results = sum([d['video_results'] for d in video_results]) / len(video_results)
     else:
         all_results = 0.0
+    logger.info(f"Overall Consistency score: {all_results:.4f}")
     return all_results, video_results, video_tracking_results
 
 def compute_consistency_metric(results, total_frames):
@@ -246,6 +246,9 @@ def compute_consistency_metric(results, total_frames):
 def eval_subject_consistency(json_dir, device, submodules_list, **kwargs):
     with open(json_dir, "r") as f:
         video_list = json.load(f)
+    # video_list = [
+    # item for item in video_list
+    # if any(video_path.endswith('_sample.mp4') for video_path in item['video_list'])]
     video_list = distribute_list_to_rank(video_list)
     exp = Exp()
     model = exp.get_model().to(device)

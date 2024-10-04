@@ -20,7 +20,7 @@ logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(le
 logger = logging.getLogger(__name__)
 
 
-def compute_miou_metric(cached_tracking_results):
+def compute_miou_metric(cached_tracking_results, gt_bbox_list_path):
     """
     Compute the mIOU metric for the tracking results.
     Args:
@@ -32,12 +32,8 @@ def compute_miou_metric(cached_tracking_results):
     video_results = []
     total_iou = 0.0
     total_boxes = 0
-
     for video_name, tracking_results in cached_tracking_results.items():
-        # Remove .mp4 from video_name if present
-        video_base_name = video_name.replace('.mp4', '')
-        # Load ground truth tensor
-        gt_path = os.path.join('king/dimensions/miou/groundtruth', f'{video_base_name}.pt')
+        gt_path = os.path.join(gt_bbox_list_path, video_name.replace('.mp4', '.pth'))
         if not os.path.exists(gt_path):
             logger.warning(f"Ground truth for video {video_name} not found at path {gt_path}.")
             continue
@@ -129,7 +125,9 @@ def eval_miou(json_dir, device, submodules_list, **kwargs):
     if not cache.has(json_dir):
         raise Exception("mIOU requires tracking results to be cached. Please run dimension `subject_consistency` first.")
     cached_tracking_results = cache.get(json_dir)[2]
-    all_results, video_results = compute_miou_metric(cached_tracking_results)
+    gt_bbox_list_path = '/mnt/bum/hanyi/data/gt_bbox'
+    #     video_path_list.append(cache.get(json_dir)[1][i]['video_path'])
+    all_results, video_results = compute_miou_metric(cached_tracking_results, gt_bbox_list_path)
     if get_world_size() > 1:
         video_results = gather_list_of_dict(video_results)
         all_results = sum([d['video_results'] for d in video_results]) / len(video_results)
